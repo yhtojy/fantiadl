@@ -17,12 +17,11 @@ import sys
 import time
 import traceback
 
-
-
 import fantiadl
 
 FANTIA_URL_RE = re.compile(r"(?:https?://(?:(?:www\.)?(?:fantia\.jp/(fanclubs|posts)/)))([0-9]+)")
-EXTERNAL_LINKS_RE = re.compile(r"(?:[\s]+)?((?:(?:https?://)?(?:(?:www\.)?(?:mega\.nz|mediafire\.com|(?:drive|docs)\.google\.com|youtube.com|dropbox.com)\/))[^\s]+)")
+EXTERNAL_LINKS_RE = re.compile(
+    r"(?:[\s]+)?((?:(?:https?://)?(?:(?:www\.)?(?:mega\.nz|mediafire\.com|(?:drive|docs)\.google\.com|youtube.com|dropbox.com)\/))[^\s]+)")
 
 DOMAIN = "fantia.jp"
 BASE_URL = "https://fantia.jp/"
@@ -62,7 +61,9 @@ class FantiaClub:
 
 
 class FantiaDownloader:
-    def __init__(self, session_arg, chunk_size=1024 * 1024 * 5, dump_metadata=False, parse_for_external_links=False, download_thumb=False, no_directory=False, directory=None, quiet=True, continue_on_error=False, use_server_filenames=False, mark_incomplete_posts=False, month_limit=None, exclude_file=None):
+    def __init__(self, session_arg, chunk_size=1024 * 1024 * 5, dump_metadata=False, parse_for_external_links=False,
+                 download_thumb=False, no_directory=False, directory=None, quiet=True, continue_on_error=False,
+                 use_server_filenames=False, mark_incomplete_posts=False, month_limit=None, exclude_file=None):
         # self.email = email
         # self.password = password
         self.session_arg = session_arg
@@ -88,7 +89,8 @@ class FantiaDownloader:
         """Write output to the console."""
         if not self.quiet:
             try:
-                sys.stdout.write(output.encode(sys.stdout.encoding, errors="backslashreplace").decode(sys.stdout.encoding))
+                sys.stdout.write(
+                    output.encode(sys.stdout.encoding, errors="backslashreplace").decode(sys.stdout.encoding))
                 sys.stdout.flush()
             except (UnicodeEncodeError, UnicodeDecodeError):
                 sys.stdout.buffer.write(output.encode("utf-8"))
@@ -189,13 +191,16 @@ class FantiaDownloader:
 
         fanclub_icon_url = fanclub_json["fanclub"]["icon"]["original"]
         if fanclub_icon_url:
-            fanclub_icon_filename = os.path.join(fanclub_directory, "icon" + self.process_content_type(fanclub_icon_url))
+            fanclub_icon_filename = os.path.join(fanclub_directory,
+                                                 "icon" + self.process_content_type(fanclub_icon_url))
             self.output("Downloading fanclub icon...\n")
-            self.perform_download(fanclub_icon_url, fanclub_icon_filename, use_server_filename=self.use_server_filenames)
+            self.perform_download(fanclub_icon_url, fanclub_icon_filename,
+                                  use_server_filename=self.use_server_filenames)
 
         background_url = fanclub_json["fanclub"]["background"]
         if background_url:
-            background_filename = os.path.join(fanclub_directory, "background" + self.process_content_type(background_url))
+            background_filename = os.path.join(fanclub_directory,
+                                               "background" + self.process_content_type(background_url))
             self.output("Downloading fanclub background...\n")
             self.perform_download(background_url, background_filename, use_server_filename=self.use_server_filenames)
 
@@ -287,13 +292,15 @@ class FantiaDownloader:
             for post in posts:
                 link = post.select_one("a.link-block")["href"]
                 post_id = link.lstrip(POST_RELATIVE_URL)
-                date_string = post.select_one(".post-date .mr-5").text if post.select_one(".post-date .mr-5") else post.select_one(".post-date").text
+                date_string = post.select_one(".post-date .mr-5").text if post.select_one(
+                    ".post-date .mr-5") else post.select_one(".post-date").text
                 parsed_date = dt.strptime(date_string, "%Y-%m-%d %H:%M")
-                if not self.month_limit or (parsed_date.year == self.month_limit.year and parsed_date.month == self.month_limit.month):
+                if not self.month_limit or (
+                        parsed_date.year == self.month_limit.year and parsed_date.month == self.month_limit.month):
                     post_found = True
                     new_post_ids.append(post_id)
             all_posts += new_post_ids
-            if not posts or (not new_post_ids and post_found): # No new posts found and we've already collected a post
+            if not posts or (not new_post_ids and post_found):  # No new posts found and we've already collected a post
                 self.output("Collected {} posts.\n".format(len(all_posts)))
                 return all_posts
             else:
@@ -329,6 +336,8 @@ class FantiaDownloader:
             return
 
         self.output("File: {}\n".format(filepath))
+        if self.no_directory:
+            filepath = filepath.replace(self.directory, "_Origin_").replace(os.sep, " ").replace("_Origin_", self.directory+os.sep)
         base_filename, original_extension = os.path.splitext(filepath)
         incomplete_filename = base_filename + ".incomplete"
 
@@ -354,7 +363,7 @@ class FantiaDownloader:
             access_time = int(time.time())
             os.utime(filepath, times=(access_time, modification_time))
         with open(os.path.join(self.directory, "exclude.txt"), "a", encoding="utf-8") as file:
-            file.write(server_filename+"\n")
+            file.write(server_filename + "\n")
 
     def download_photo(self, photo_url, photo_counter, gallery_directory):
         """Download a photo to the post's directory."""
@@ -364,7 +373,8 @@ class FantiaDownloader:
 
     def download_file(self, download_url, filename, post_directory):
         """Download a file to the post's directory."""
-        self.perform_download(download_url, filename, use_server_filename=True) # Force serve filenames to prevent duplicate collision
+        self.perform_download(download_url, filename,
+                              use_server_filename=True)  # Force serve filenames to prevent duplicate collision
 
     def download_post_content(self, post_json, post_directory, post_title):
         """Parse the post's content to determine whether to save the content as a photo gallery or file."""
@@ -373,7 +383,7 @@ class FantiaDownloader:
                 photo_gallery = post_json["post_content_photos"]
                 photo_counter = 0
                 gallery_directory = os.path.join(post_directory, sanitize_for_path(post_title))
-                #os.makedirs(gallery_directory, exist_ok=True)
+                # os.makedirs(gallery_directory, exist_ok=True)
                 for photo in photo_gallery:
                     photo_url = photo["url"]["original"]
                     self.download_photo(photo_url, photo_counter, gallery_directory)
@@ -393,14 +403,15 @@ class FantiaDownloader:
                 blog_json = json.loads(blog_comment)
                 photo_counter = 0
                 gallery_directory = os.path.join(post_directory, sanitize_for_path(post_title))
-                #os.makedirs(gallery_directory, exist_ok=True)
+                # os.makedirs(gallery_directory, exist_ok=True)
                 for op in blog_json["ops"]:
                     if type(op["insert"]) is dict and op["insert"].get("fantiaImage"):
                         photo_url = urljoin(BASE_URL, op["insert"]["fantiaImage"]["original_url"])
                         self.download_photo(photo_url, photo_counter, gallery_directory)
                         photo_counter += 1
             else:
-                self.output("Post content category \"{}\" is not supported. Skipping...\n".format(post_json.get("category")))
+                self.output(
+                    "Post content category \"{}\" is not supported. Skipping...\n".format(post_json.get("category")))
 
             if self.parse_for_external_links:
                 post_description = post_json["comment"] or ""
@@ -427,10 +438,12 @@ class FantiaDownloader:
         post_title = post_json["title"]
         post_contents = post_json["post_contents"]
 
-        post_directory_title = sanitize_for_path(str(post_id)+" "+post_title)
+        post_directory_title = sanitize_for_path(str(post_id) + " " + post_title)
 
-        post_directory = os.path.join(self.directory, post_directory_title)#        post_directory = os.path.join(self.directory, sanitize_for_path(post_creator), post_directory_title)
-        os.makedirs(post_directory, exist_ok=True)
+        post_directory = os.path.join(self.directory,
+                                      post_directory_title)  # post_directory = os.path.join(self.directory, sanitize_for_path(post_creator), post_directory_title)
+        if not self.no_directory:
+            os.makedirs(post_directory, exist_ok=True)
 
         post_titles = self.collect_post_titles(post_json)
 
@@ -447,7 +460,7 @@ class FantiaDownloader:
         for post_index, post in enumerate(post_contents):
             post_title = post_titles[post_index]
             self.download_post_content(post, post_directory, post_title)
-        if not os.listdir(post_directory):
+        if not self.no_directory and not os.listdir(post_directory):
             self.output("No content downloaded for post {}. Deleting directory.\n".format(post_id))
             os.rmdir(post_directory)
 
@@ -494,11 +507,13 @@ def guess_extension(mimetype, download_url):
             extension = ".unknown"
     return extension
 
+
 def sanitize_for_path(value, replace=' '):
     """Remove potentially illegal characters from a path."""
     sanitized = re.sub(r'[<>\"\?\\\/\*:|]', replace, value)
     sanitized = sanitized.translate(UNICODE_CONTROL_MAP)
     return re.sub(r'[\s.]+$', '', sanitized)
+
 
 def build_crawljob(links, root_directory, post_directory):
     """Append to a root .crawljob file with external links gathered from a post."""
@@ -521,10 +536,11 @@ def build_crawljob(links, root_directory, post_directory):
                 file.write(key + "=" + value + "\n")
             file.write("\n")
 
+
 def swapServerName(serverName):
     base_filename, original_extension = os.path.splitext(serverName)
     stringlist = base_filename.split('_', 1)
     temp = stringlist[1]
     stringlist[1] = stringlist[0]
     stringlist[0] = temp
-    return "_".join(stringlist)+"."+original_extension
+    return "_".join(stringlist) + "." + original_extension
