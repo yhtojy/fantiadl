@@ -43,7 +43,7 @@ if __name__ == "__main__":
     dl_group.add_argument("-k", "--no-directory", action="store_true", dest="no_directory", help="download without directory each post")
     dl_group.add_argument("-f", "--download-fanclubs", action="store_true", dest="download_fanclubs", help="download posts from all followed fanclubs")
     dl_group.add_argument("-p", "--download-paid-fanclubs", action="store_true", dest="download_paid_fanclubs", help="download posts from all fanclubs backed on a paid plan")
-    dl_group.add_argument("-n", "--download-new-posts", dest="download_new_posts", metavar="#", type=int, default=24, help="download a specified number of new posts from your fanclub timeline [default: 24]")
+    dl_group.add_argument("-n", "--download-new-posts", dest="download_new_posts", metavar="#", type=int, default=1, help="download a specified number of new posts from your fanclub timeline [default: 24]")
     dl_group.add_argument("-d", "--download-month", dest="month_limit", metavar="%Y-%m", help="download posts only from a specific month, e.g. 2007-08 (excludes -n)")
     dl_group.add_argument("--exclude", dest="exclude_file", metavar="EXCLUDE_FILE", help="file containing a list of filenames to exclude from downloading")
 
@@ -100,16 +100,16 @@ if __name__ == "__main__":
                     pass
                 else:
                     raise
-        elif cmdl_opts.download_new_posts:
-            try:
-                downloader.download_new_posts(post_limit=cmdl_opts.download_new_posts)
-            except:
-                if cmdl_opts.continue_on_error:
-                    downloader.output("Encountered an error downloading new posts from timeline. Skipping...\n")
-                    traceback.print_exc()
-                    pass
-                else:
-                    raise
+        # elif cmdl_opts.download_new_posts:
+        #     try:
+        #         downloader.download_new_posts(post_limit=cmdl_opts.download_new_posts)
+        #     except:
+        #         if cmdl_opts.continue_on_error:
+        #             downloader.output("Encountered an error downloading new posts from timeline. Skipping...\n")
+        #             traceback.print_exc()
+        #             pass
+        #         else:
+        #             raise
         if cmdl_opts.url:
             for url in cmdl_opts.url:
                     url_match = models.FANTIA_URL_RE.match(url)

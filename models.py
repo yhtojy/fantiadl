@@ -499,11 +499,16 @@ class FantiaDownloader:
         post_contents = post_json["post_contents"]
 
         post_directory_title = sanitize_for_path(str(post_id) + " " + post_title)
-
+        post_directory_title_old = sanitize_for_path(str(post_id))
+        post_directory_old = os.path.join(self.directory, post_directory_title_old)
         post_directory = os.path.join(self.directory,
                                       post_directory_title)  # post_directory = os.path.join(self.directory, sanitize_for_path(post_creator), post_directory_title)
         if not self.no_directory:
-            os.makedirs(post_directory, exist_ok=True)
+            if not os.path.isdir(post_directory_old):
+                os.makedirs(post_directory, exist_ok=True)
+            else:
+                os.rename(post_directory_old, post_directory)
+
 
         post_titles = self.collect_post_titles(post_json)
 
