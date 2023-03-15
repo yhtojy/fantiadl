@@ -100,16 +100,16 @@ if __name__ == "__main__":
                     pass
                 else:
                     raise
-        # elif cmdl_opts.download_new_posts:
-        #     try:
-        #         downloader.download_new_posts(post_limit=cmdl_opts.download_new_posts)
-        #     except:
-        #         if cmdl_opts.continue_on_error:
-        #             downloader.output("Encountered an error downloading new posts from timeline. Skipping...\n")
-        #             traceback.print_exc()
-        #             pass
-        #         else:
-        #             raise
+        elif cmdl_opts.download_new_posts:
+            try:
+                downloader.download_new_posts(post_limit=cmdl_opts.download_new_posts)
+            except:
+                if cmdl_opts.continue_on_error:
+                    downloader.output("Encountered an error downloading new posts from timeline. Skipping...\n")
+                    traceback.print_exc()
+                    pass
+                else:
+                    raise
         if cmdl_opts.url:
             for url in cmdl_opts.url:
                     url_match = models.FANTIA_URL_RE.match(url)
