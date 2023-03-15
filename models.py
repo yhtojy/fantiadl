@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter, Retry
 import requests
 
 from datetime import datetime as dt
@@ -10,6 +11,7 @@ from urllib.parse import urljoin
 from urllib.parse import urlparse
 import http.cookiejar
 import json
+import math
 import mimetypes
 import os
 import re
@@ -40,6 +42,8 @@ POST_API = "https://fantia.jp/api/v1/posts/{}"
 POST_URL = "https://fantia.jp/posts/{}"
 POSTS_URL = "https://fantia.jp/posts"
 POST_RELATIVE_URL = "/posts/"
+
+TIMELINES_API = "https://fantia.jp/api/v1/me/timelines/posts?page={}&per=24"
 
 USER_AGENT = "fantiadl/{}".format(fantiadl.__version__)
 
@@ -81,8 +85,7 @@ class FantiaDownloader:
         self.month_limit = dt.strptime(month_limit, "%Y-%m") if month_limit else None
         self.exclude_file = exclude_file
         self.exclusions = []
-        self.session = requests.session()
-        self.session.headers.update({"User-Agent": USER_AGENT})
+        self.initialize_session()
         self.login()
         self.create_exclusions()
 
@@ -97,9 +100,24 @@ class FantiaDownloader:
                 sys.stdout.buffer.write(output.encode("utf-8"))
                 sys.stdout.flush()
 
+    def initialize_session(self):
+        """Initialize session with necessary headers and config."""
+
+        self.session = requests.session()
+        self.session.headers.update({"User-Agent": USER_AGENT})
+        retries = Retry(
+            total=5,
+            connect=5,
+            read=5,
+            status_forcelist=[429, 500, 502, 503, 504, 507, 508],
+            backoff_factor=2, # retry delay = {backoff factor} * (2 ** ({retry number} - 1))
+            raise_on_status=True
+        )
+        self.session.mount("http://", HTTPAdapter(max_retries=retries))
+        self.session.mount("https://", HTTPAdapter(max_retries=retries))
+
     def login(self):
         """Login to Fantia using the provided email and password."""
-
         try:
             with open(self.session_arg, "r") as cookies_file:
                 cookies = http.cookiejar.MozillaCookieJar(self.session_arg)
@@ -273,6 +291,40 @@ class FantiaDownloader:
             except:
                 if self.continue_on_error:
                     self.output("Encountered an error downloading fanclub. Skipping...\n")
+                    traceback.print_exc()
+                    continue
+                else:
+                    raise
+
+    def download_new_posts(self, post_limit=24):
+        all_new_post_ids = []
+        total_pages = math.ceil(post_limit / 24)
+        page_number = 1
+        has_next = True
+        self.output("Downloading {} new posts...\n".format(post_limit))
+
+        while has_next and not len(all_new_post_ids) >= post_limit - 1:
+            response = self.session.get(TIMELINES_API.format(page_number))
+            response.raise_for_status()
+            json_response = json.loads(response.text)
+
+            posts = json_response["posts"]
+            has_next = json_response["has_next"]
+            for post in posts:
+                if len(all_new_post_ids) >= post_limit - 1:
+                    break
+                post_id = post["id"]
+                all_new_post_ids.append(post_id)
+            page_number += 1
+
+        for post_id in all_new_post_ids:
+            try:
+                self.download_post(post_id)
+            except KeyboardInterrupt:
+                raise
+            except:
+                if self.continue_on_error:
+                    self.output("Encountered an error downloading post. Skipping...\n")
                     traceback.print_exc()
                     continue
                 else:
